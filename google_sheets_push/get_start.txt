@@ -1,4 +1,4 @@
 0. Установить зависимости
-1. Скачать credentials.json (ключ json) по инструкции
+1. Скачать credentials.json (ключ json) по инструкции https://www.youtube.com/watch?v=zCEJurLGFRk
 2. Указать в Google_class или при создании объекта необходимый ID гугл таблицы
 3. Подключить к гугл таблицы сервисный аккаунт
