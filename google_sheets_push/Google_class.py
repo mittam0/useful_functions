@@ -1,12 +1,13 @@
 import pandas as pd
 import gspread
 from google.oauth2.service_account import Credentials
-
+from tqdm import tqdm 
+import time
 
 class Google_table:
 
     def __init__(self, spreadsheet_id=None):
-        self.SPREADSHEET_ID = spreadsheet_id or # "" ID Google таблицы по умолчанию
+        self.SPREADSHEET_ID = spreadsheet_id # id google_table
 
 
     def get_google_sheets_client(self):
@@ -20,24 +21,39 @@ class Google_table:
         client = gspread.authorize(creds)
         return client
 
-    def write_to_my_sheet_batch(self, df, worksheet_name="Sheet1"):
-        """Записывает данные в гугл таблицу по 1000 строк"""
+    def write_to_my_sheet_batch(self, df, worksheet_name="Sheet1", chunk_size=1000):
+        """Записывает данные в гугл таблицу по частям"""
         try:
             client = self.get_google_sheets_client()
             spreadsheet = client.open_by_key(self.SPREADSHEET_ID)
             
             try:
                 worksheet = spreadsheet.worksheet(worksheet_name)
+                worksheet.clear()
+                worksheet.resize(rows=len(df)+1, cols=len(df.columns))
             except gspread.WorksheetNotFound:
-                worksheet = spreadsheet.add_worksheet(title=worksheet_name, rows=1000, cols=26)
+                worksheet = spreadsheet.add_worksheet(title=worksheet_name, rows=len(df)+1, cols=len(df.columns))
             
-            all_data = [df.columns.tolist()] + df.values.tolist()
+            # Записываем заголовки
+            worksheet.update('A1', [df.columns.tolist()])
             
-            # Очищаем и записываем за один раз
-            worksheet.clear()
-            worksheet.update('A1', all_data)
+            # Записываем данные по частям
+            total_rows = len(df)
+            for i in tqdm(range(0, total_rows, chunk_size), desc="Запись в Google Sheets"):
+                chunk = df.iloc[i:i + chunk_size]
+                chunk_data = chunk.values.tolist()
+                
+    
+                start_row = i + 2  
+                end_row = i + len(chunk) + 1
+                range_name = f'A{start_row}'
+                
+                worksheet.update(range_name, chunk_data)
+                
+
+                time.sleep(0.1)
             
-            print("Данные записаны пакетным методом!")
+            print(f"Данные записаны пакетным методом! Всего строк: {total_rows}")
             return True
             
         except Exception as e:
@@ -59,7 +75,6 @@ class Google_table:
             return worksheets
         except Exception as e:
             print(f"Ошибка: {e}")
-            
 
     def read_from_my_sheet(self, worksheet_name="Sheet1"):
         """Читает данные из таблицы"""
